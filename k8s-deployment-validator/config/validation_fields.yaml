@@ -1,0 +1,9 @@
+# Kubernetes Deployment Validation Fields Configuration
+# Defines which container fields are required during validation
+# Use dot notation for nested fields (e.g., resources.limits)
+
+required_fields:
+  - readinessProbe
+  - livenessProbe
+  - resources.limits
+  - resources.requests

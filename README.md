@@ -8,8 +8,31 @@ A Python utility for validating Kubernetes deployment YAML configuration files. 
 
 - Validates Kubernetes deployment YAML files for syntax and structure
 - Supports batch processing of multiple YAML files in a directory
-- Configurable validation rules and requirements
+- Fully configurable validation fields via `validation_fields.yaml` (no hardcoded checks)
+- Supports nested field validation using dot notation
 - Clear error reporting for invalid configurations
+
+### Configuration
+
+The tool reads validation requirements from `config/validation_fields.yaml`. You can customize which fields are required for validation by editing this file. Fields use dot notation for nested attributes.
+
+Default validation checks:
+- `readinessProbe` (top-level container field)
+- `livenessProbe` (top-level container field)
+- `resources.limits` (nested under resources)
+- `resources.requests` (nested under resources)
+
+To customize validation rules, modify the `config/validation_fields.yaml` file:
+
+```yaml
+required_fields:
+  - readinessProbe
+  - livenessProbe
+  - resources.limits
+  - resources.requests
+```
+
+You can add or remove any container fields. Use dot notation for nested fields (e.g., `securityContext.runAsNonRoot`).
 
 ### Usage
 

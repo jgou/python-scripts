@@ -1,0 +1,183 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+spec:
+  progressDeadlineSeconds: 900
+  replicas: 10
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: rx-ibe-resources-api
+      app.kubernetes.io/name: rx-ibe-resources-api
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 0%
+    type: RollingUpdate
+  template:
+    metadata:
+      annotations:
+        ad.datadoghq.com/tags: '{"git.commit.sha": "${COMMIT_SHA}", "git.repository_url":
+          "https://dev.azure.com/newshore-booking-ria/API/_git/NS.Booking.Resources.API"}'
+        cloudsql.cloud.google.com/rx-ibe-resources-api: 1,gcr.io/cloud-sql-connectors/cloud-sql-proxy:2.23.0
+        flyr_product: flyr-ibe
+        flyr_stack: flyr-ibe
+        instrumentation.opentelemetry.io/inject-dotnet: otel-collector/default
+        kubectl.kubernetes.io/restartedAt: "2026-07-30T11:40:05-05:00"
+        resource.opentelemetry.io/deployment.environment: qa
+      labels:
+        app: rx-ibe-resources-api
+        app.kubernetes.io/managed-by: google-cloud-deploy
+        app.kubernetes.io/name: rx-ibe-resources-api
+        deploy.cloud.google.com/delivery-pipeline-id: ooms-retail-rx-resources-pipeline
+        deploy.cloud.google.com/location: europe-west3
+        deploy.cloud.google.com/project-id: prj-flyr-prd-dcx-cicd-78be
+        deploy.cloud.google.com/release-id: v5-29-12
+        deploy.cloud.google.com/target-id: rx-ooms-qa
+        skaffold.dev/run-id: 1816b113ef924a988559f0c6881a91a7
+        tags.datadoghq.com/env: qa
+        tags.datadoghq.com/flyr_tenant: rx
+        tags.datadoghq.com/service: rx-ibe-resources-api
+    spec:
+      containers:
+      - args:
+        - /usr/local/bin/mssql-dbconnstring-entrypoint.sh dotnet NS.Booking.Resources.API.dll
+        command:
+        - /bin/sh
+        - -c
+        env:
+        - name: DOTNET_USE_POLLING_FILE_WATCHER
+          value: "true"
+        - name: AzureAppConfiguration
+          valueFrom:
+            secretKeyRef:
+              key: qa-ibe-azure-app-config-connection-string
+              name: ibe-azure-app-config
+        - name: AzureEnvironment
+          valueFrom:
+            secretKeyRef:
+              key: qa-ibe-azure-app-config-environment
+              name: ibe-azure-app-config
+        - name: DB_USER
+          valueFrom:
+            secretKeyRef:
+              key: username
+              name: ibe-mssql
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: password
+              name: ibe-mssql
+        - name: DB_NAME
+          valueFrom:
+            secretKeyRef:
+              key: database_name
+              name: ibe-mssql
+        - name: DB_APPNAME
+          value: RX_API
+        - name: IBE__API__Common__Infrastructure__Storage__Redis__RedisConfiguration__Host
+          valueFrom:
+            configMapKeyRef:
+              key: host
+              name: ibe-redis
+        - name: IBE__API__Common__Infrastructure__Storage__Redis__RedisConfiguration__Port
+          valueFrom:
+            configMapKeyRef:
+              key: port
+              name: ibe-redis
+        - name: IBE__API__Common__Infrastructure__Storage__Redis__RedisConfiguration__ServerName
+          value: $(IBE__API__Common__Infrastructure__Storage__Redis__RedisConfiguration__Host):$(IBE__API__Common__Infrastructure__Storage__Redis__RedisConfiguration__Port)
+        - name: IBE__API__Common__Infrastructure__Storage__Redis__RedisConfiguration__Password
+          valueFrom:
+            secretKeyRef:
+              key: auth_string
+              name: ibe-redis
+        - name: IBE__RedisSessionConfiguration__Host
+          valueFrom:
+            configMapKeyRef:
+              key: host
+              name: ibe-redis-sessions
+        - name: IBE__RedisSessionConfiguration__Port
+          valueFrom:
+            configMapKeyRef:
+              key: port
+              name: ibe-redis-sessions
+        - name: IBE__RedisSessionConfiguration__ServerName
+          value: $(IBE__RedisSessionConfiguration__Host):$(IBE__RedisSessionConfiguration__Port)
+        - name: IBE__RedisSessionConfiguration__Password
+          valueFrom:
+            configMapKeyRef:
+              key: auth_string
+              name: ibe-redis-sessions
+        envFrom:
+        - configMapRef:
+            name: rx-ibe-resources-api
+        image: europe-docker.pkg.dev/prj-flyr-prd-dcx-registry-89a7/docker/rx-ibe-resources-api:5.29.12@sha256:b973c7f4a0e220849305109590ba79ca883c0972e2f743d12cf2976b752aa56e
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          failureThreshold: 2
+          httpGet:
+            path: /livez
+            port: 8080
+            scheme: HTTP
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 10
+        name: rx-ibe-resources-api
+        ports:
+        - containerPort: 8080
+          name: http
+          protocol: TCP
+        readinessProbe:
+          failureThreshold: 2
+          httpGet:
+            path: /readyz
+            port: 8080
+            scheme: HTTP
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 10
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512Mi
+          requests:
+            cpu: 500m
+            memory: 300Mi
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /usr/local/bin/mssql-dbconnstring-entrypoint.sh
+          name: mssql-dbconnstring-volume
+          readOnly: true
+          subPath: mssql-dbconnstring-entrypoint.sh
+        - mountPath: /app/config
+          name: app-config
+          readOnly: true
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      serviceAccount: dcx
+      serviceAccountName: dcx
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - configMap:
+          defaultMode: 365
+          name: rx-ibe-resources-api-mssql-configmap
+        name: mssql-dbconnstring-volume
+      - name: app-config
+        projected:
+          defaultMode: 420
+          sources:
+          - configMap:
+              name: flyr-ibe-shared-app-settings
+              optional: true
+          - configMap:
+              name: rx-ibe-resources-api-app-settings
+              optional: true
+          - configMap:
+              name: rx-ibe-resources-api-static-config
+              optional: true

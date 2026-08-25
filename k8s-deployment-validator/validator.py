@@ -8,7 +8,7 @@ class DeploymentValidator:
   def validate(self):
     self.config.validate()
 
-    for entry in os.scandir(self.config.getPath()):
+    for entry in os.scandir(self.config.get_path()):
       if entry.is_file() and entry.name.endswith(".yaml"):
         self.__validate_file(entry.path)
         
@@ -26,6 +26,16 @@ class DeploymentValidator:
       print(f"YAML error in file {file_path}: {e}")
     except Exception as e:
       print(f"Failed to read file {file_path}: {e}")
+
+  def __get_nested_value(self, obj, item):
+    keys = item.split('.')
+    current = obj
+    for key in keys:
+      if isinstance(current, dict) and key in current:
+        current = current[key]
+      else:
+        return None
+    return current
   
   def __check_content(self, data):
     if not isinstance(data, dict) or data.get("kind") != "Deployment":
@@ -39,14 +49,11 @@ class DeploymentValidator:
         print(f"Container definition is not a dictionary.")
         return False
 
-      if "readinessProbe" not in container or "livenessProbe" not in container:
-        print(f"Container {container.get('name', 'unknown')} does not have readiness or liveness probes defined.")
-        return False
+      required_fields = self.config.get_required_fields()
+      for field in required_fields:
+        if self.__get_nested_value(container, field) is None:
+          print(f"Container {container.get('name', 'unknown')} does not have {field} defined.")
+          return False
 
-      resources = container.get("resources", {})
-      if "limits" not in resources or "requests" not in resources:
-        print(f"Container {container.get('name', 'unknown')} does not have resource limits or requests defined.")
-        return False
-    
     return True
 
