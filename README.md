@@ -92,3 +92,33 @@ Remove `--dry-run` to actually disable deletion protection on the matched load b
 
 - boto3>=1.26.0 (see `requirements.txt`)
 - AWS credentials configured for the given `--profile` with permissions for `elasticloadbalancing:DescribeLoadBalancers` and `elasticloadbalancing:ModifyLoadBalancerAttributes`
+
+## aws-copy-and-verify-s3-bucket
+
+A Python utility for copying the contents of one S3 bucket to another, then verifying that the copy completed correctly.
+
+### Prerequisites
+
+- The destination bucket must already exist; the tool does not create it
+- For a verification of 0 differences, the destination bucket must be empty before running the tool — any pre-existing objects will show up as "extra in destination"
+
+### Features
+
+- Copies all objects from a source bucket to a destination bucket, each accessed via its own AWS profile and region
+- Verifies the copy by comparing object keys, sizes, and ETags between source and destination
+- Reports objects missing from the destination, extra objects in the destination, and size/ETag mismatches
+- Supports a `--dry-run` mode to preview the copy without making any changes
+- Supports a `--verify-only` mode to skip copying and only verify existing bucket contents
+
+### Usage
+
+```bash
+python3 aws-copy-and-verify-s3-bucket --source-bucket my-source-bucket --destination-bucket my-destination-bucket --source-profile source-profile --destination-profile destination-profile --source-region us-east-1 --destination-region us-east-1 --dry-run
+```
+
+Remove `--dry-run` to actually copy the objects, or pass `--verify-only` to skip copying and only verify the destination bucket against the source.
+
+### Requirements
+
+- boto3>=1.26.0 (see `requirements.txt`)
+- AWS credentials configured for the given `--source-profile` and `--destination-profile` with permissions for `s3:ListBucket` and `s3:GetObject` on the source bucket, and `s3:ListBucket` and `s3:PutObject` on the destination bucket
