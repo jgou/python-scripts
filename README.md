@@ -68,3 +68,27 @@ python3 env-files-compare --paths /path/to/.env.1 /path/to/.env.2 /path/to/.env.
 ### Requirements
 
 - Python 3 standard library only (no external dependencies)
+
+## disable-lb-protection
+
+A Python utility for bulk-disabling deletion protection on AWS Elastic Load Balancers (ELBv2) whose name matches a search string.
+
+### Features
+
+- Lists load balancers in a given AWS region using a specified AWS profile
+- Filters load balancers by a substring match on their name
+- Disables the `deletion_protection.enabled` attribute on each matching load balancer
+- Supports a `--dry-run` mode to preview matches without making any changes
+
+### Usage
+
+```bash
+python3 disable-lb-protection --profile my-aws-profile --region us-east-1 --search-name-criteria my-lb-name --dry-run
+```
+
+Remove `--dry-run` to actually disable deletion protection on the matched load balancers.
+
+### Requirements
+
+- boto3>=1.26.0 (see `requirements.txt`)
+- AWS credentials configured for the given `--profile` with permissions for `elasticloadbalancing:DescribeLoadBalancers` and `elasticloadbalancing:ModifyLoadBalancerAttributes`
