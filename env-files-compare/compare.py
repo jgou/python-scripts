@@ -8,18 +8,25 @@ class EnvFilesCompare:
     self.differences = {}
 
   def compare(self):
-    env_vars1 = EnvFileLoader.load_env_file(self.config.path1)
-    env_vars2 = EnvFileLoader.load_env_file(self.config.path2)
+    env_vars = []
     self.differences = {}
-    all_keys = set(env_vars1.keys()).union(set(env_vars2.keys()))
+    all_keys = set()
+    
+    for path in self.config.paths:
+      env_vars.append(EnvFileLoader.load_env_file(path))
+      all_keys = all_keys.union(set(env_vars[-1].keys()))
+
     for key in all_keys:
-      if key not in env_vars1:
-        self.differences[key] = (None, env_vars2[key])
-      elif key not in env_vars2:
-        self.differences[key] = (env_vars1[key], None)
-      else:
-        if env_vars1[key] != env_vars2[key]:
-          self.differences[key] = (env_vars1[key], env_vars2[key])
+      values = []
+      # Get the value for the key from each env file, if it exists
+      for env_var in env_vars:
+        values.append(env_var.get(key))
+      # Check if any of the values are None (key missing in one of the files)
+      if any(v is None for v in values):
+        self.differences[key] = tuple(values)
+      # Check if the values are different across the files
+      elif len(set(values)) > 1:
+        self.differences[key] = tuple(values)
     return self.differences
 
   def report(self):
@@ -27,7 +34,7 @@ class EnvFilesCompare:
       print("No differences found between the two environment files.")
     else:
       print("Differences found:")
-      for key, (value1, value2) in self.differences.items():
+      for key, values in self.differences.items():
         print(f"  {key}:")
-        print(f"    Path 1: {value1}")
-        print(f"    Path 2: {value2}")
+        for i, value in enumerate(values):
+          print(f"    Path {i + 1}: {value}")

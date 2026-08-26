@@ -6,6 +6,6 @@ class EnvFileLoader:
       for line in file:
         line = line.strip()
         if line and not line.startswith('#'):
-          var_name, var_value = line.split('=')
+          var_name, var_value = line.split('=', 1)
           env_vars[var_name.strip()] = var_value.strip()
     return env_vars

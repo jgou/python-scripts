@@ -48,21 +48,21 @@ python3 k8s-deployment-validator --path /path/to/yaml/files
 
 ## env-files-compare
 
-A Python utility for comparing two `.env` files and reporting differences in their key-value pairs.
+A Python utility for comparing two or more `.env` files and reporting differences in their key-value pairs.
 
 ### Features
 
-- Compares two environment files and identifies keys with different values
-- Detects keys present in one file but missing from the other
+- Compares any number of environment files and identifies keys with differing values
+- Detects keys present in some files but missing from others
 - Ignores blank lines and comments (lines starting with `#`)
 - Clear, human-readable difference report
 
 ### Usage
 
-Run the comparer by providing paths to the two environment files:
+Run the comparer by providing paths to two or more environment files:
 
 ```bash
-python3 env-files-compare --path1 /path/to/.env.1 --path2 /path/to/.env.2
+python3 env-files-compare --paths /path/to/.env.1 /path/to/.env.2 /path/to/.env.3
 ```
 
 ### Requirements
