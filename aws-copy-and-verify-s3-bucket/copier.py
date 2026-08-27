@@ -23,7 +23,7 @@ class S3BucketCopier:
                     source_key = obj['Key']
                     if not self.config.dry_run:
                         copy_source = {'Bucket': self.config.source_bucket, 'Key': source_key}
-                        self.destination_client_s3.copy(copy_source, self.config.destination_bucket, source_key)
+                        self.destination_client_s3.copy(copy_source, self.config.destination_bucket, source_key, SourceClient=self.source_client_s3)
                     print(f"Copied object: {source_key} from {self.config.source_bucket} to {self.config.destination_bucket}")
         except Exception as e:
             print(f"Error copying objects from {self.config.source_bucket} to {self.config.destination_bucket}: {e}")

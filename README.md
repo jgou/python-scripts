@@ -101,6 +101,40 @@ A Python utility for copying the contents of one S3 bucket to another, then veri
 
 - The destination bucket must already exist; the tool does not create it
 - For a verification of 0 differences, the destination bucket must be empty before running the tool — any pre-existing objects will show up as "extra in destination"
+- When `--source-profile` and `--destination-profile` belong to different AWS accounts, the copy is performed server-side (`CopyObject`) using the destination account's credentials reading from the source bucket. The source bucket must have a bucket policy granting the destination account read access, e.g.:
+
+  ```json
+  {
+    "Version": "2012-10-17",
+    "Statement": [
+      {
+        "Sid": "AllowDestinationAccountReadForMigration",
+        "Effect": "Allow",
+        "Principal": {
+          "AWS": "arn:aws:iam::<DESTINATION_ACCOUNT_ID>:root"
+        },
+        "Action": ["s3:GetObject", "s3:GetObjectAcl"],
+        "Resource": "arn:aws:s3:::<SOURCE_BUCKET>/<PREFIX>*"
+      },
+      {
+        "Sid": "AllowDestinationAccountListForMigration",
+        "Effect": "Allow",
+        "Principal": {
+          "AWS": "arn:aws:iam::<DESTINATION_ACCOUNT_ID>:root"
+        },
+        "Action": "s3:ListBucket",
+        "Resource": "arn:aws:s3:::<SOURCE_BUCKET>",
+        "Condition": {
+          "StringLike": {
+            "s3:prefix": "<PREFIX>*"
+          }
+        }
+      }
+    ]
+  }
+  ```
+
+  Omit the `Condition` block (and use `Resource: "arn:aws:s3:::<SOURCE_BUCKET>/*"` / `"arn:aws:s3:::<SOURCE_BUCKET>"`) to grant access to the whole bucket instead of a single prefix. If the source bucket already has a policy, merge this statement into it rather than overwriting it.
 
 ### Features
 
