@@ -107,13 +107,14 @@ A Python utility for copying the contents of one S3 bucket to another, then veri
 - Copies all objects from a source bucket to a destination bucket, each accessed via its own AWS profile and region
 - Verifies the copy by comparing object keys, sizes, and ETags between source and destination
 - Reports objects missing from the destination, extra objects in the destination, and size/ETag mismatches
+- Supports an optional `--prefix` to scope the copy and verification to a single folder path, applied to both buckets
 - Supports a `--dry-run` mode to preview the copy without making any changes
 - Supports a `--verify-only` mode to skip copying and only verify existing bucket contents
 
 ### Usage
 
 ```bash
-python3 aws-copy-and-verify-s3-bucket --source-bucket my-source-bucket --destination-bucket my-destination-bucket --source-profile source-profile --destination-profile destination-profile --source-region us-east-1 --destination-region us-east-1 --dry-run
+python3 aws-copy-and-verify-s3-bucket --source-bucket my-source-bucket --destination-bucket my-destination-bucket --source-profile source-profile --destination-profile destination-profile --source-region us-east-1 --destination-region us-east-1 --prefix my-folder/ --dry-run
 ```
 
 Remove `--dry-run` to actually copy the objects, or pass `--verify-only` to skip copying and only verify the destination bucket against the source.

@@ -18,7 +18,7 @@ class S3BucketCopier:
     def __copy_objects(self):
         try:
             paginator = self.source_client_s3.get_paginator("list_objects_v2")
-            for page in paginator.paginate(Bucket=self.config.source_bucket):
+            for page in paginator.paginate(Bucket=self.config.source_bucket, Prefix=self.config.prefix):
                 for obj in page.get("Contents", []):
                     source_key = obj['Key']
                     if not self.config.dry_run:

@@ -20,11 +20,11 @@ class S3BucketVerifier:
     self.destination_client_s3 = self.destination_session.client('s3', region_name=self.config.destination_region)
 
   @staticmethod
-  def __list_objects_in_bucket(s3_client, bucket_name):
+  def __list_objects_in_bucket(s3_client, bucket_name, prefix):
     objects = {}
     try:
       paginator = s3_client.get_paginator("list_objects_v2")
-      for page in paginator.paginate(Bucket=bucket_name):
+      for page in paginator.paginate(Bucket=bucket_name, Prefix=prefix):
         for obj in page.get("Contents", []):
           objects[obj['Key']] = {
             'Size': obj['Size'],
@@ -78,8 +78,8 @@ class S3BucketVerifier:
     self.__init_sessions()
     self.__create_s3_clients()
 
-    self.source_objects = self.__list_objects_in_bucket(self.source_client_s3, self.source_bucket)
-    self.destination_objects = self.__list_objects_in_bucket(self.destination_client_s3, self.destination_bucket)
+    self.source_objects = self.__list_objects_in_bucket(self.source_client_s3, self.source_bucket, self.config.prefix)
+    self.destination_objects = self.__list_objects_in_bucket(self.destination_client_s3, self.destination_bucket, self.config.prefix)
 
     missing_in_destination = self.__get_missing_in_destination()
     extra_in_destination = self.__get_extra_in_destination()
