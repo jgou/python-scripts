@@ -157,3 +157,30 @@ Remove `--dry-run` to actually copy the objects, or pass `--verify-only` to skip
 
 - boto3>=1.26.0 (see `requirements.txt`)
 - AWS credentials configured for the given `--source-profile` and `--destination-profile` with permissions for `s3:ListBucket` and `s3:GetObject` on the source bucket, and `s3:ListBucket` and `s3:PutObject` on the destination bucket
+
+## aws-cleanup-helper
+
+A Python utility that scans an AWS account and deletes resources, organized per AWS service. Currently supports S3: it scans **every bucket in the account** and, unless `--dry-run` is passed, deletes all of them (objects included).
+
+> [!WARNING]
+> Without `--dry-run`, this tool deletes every S3 bucket in the target account — it does not filter by name, age, or emptiness. Always run with `--dry-run` first and review the output before running for real.
+
+### Features
+
+- Scans and reports all S3 buckets in the account, their region, and whether they contain objects
+- Deletes all objects in each bucket, then the bucket itself
+- Supports a `--services` flag to limit which AWS services are scanned/deleted, comma-separated (currently only `s3` is implemented)
+- Supports a `--dry-run` mode to preview what would be deleted without making any changes
+
+### Usage
+
+```bash
+python3 aws-cleanup-helper --profile my-aws-profile --services s3 --dry-run
+```
+
+Remove `--dry-run` to actually delete the scanned resources.
+
+### Requirements
+
+- boto3>=1.26.0 (see `requirements.txt`)
+- AWS credentials configured for the given `--profile` with permissions for `s3:ListAllMyBuckets`, `s3:GetBucketLocation`, `s3:ListBucket`, `s3:DeleteObject`, and `s3:DeleteBucket`
