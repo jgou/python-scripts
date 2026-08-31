@@ -27,10 +27,17 @@ def main():
             continue
 
         print(f"  Found: {azure_user_manager.display_name} ({azure_user_manager.user_id})")
-        azure_user_manager.block_signin()
-        azure_user_manager.revoke_sessions()
-        azure_user_manager.remove_from_all_groups()
-        azure_user_manager.remove_directory_roles()
-        azure_user_manager.remove_azure_rbac_roles()
+        steps = (
+            azure_user_manager.block_signin,
+            azure_user_manager.revoke_sessions,
+            azure_user_manager.remove_from_all_groups,
+            azure_user_manager.remove_directory_roles,
+            azure_user_manager.remove_azure_rbac_roles,
+        )
+        for step in steps:
+            try:
+                step()
+            except Exception as e:
+                print(f"  Step '{step.__name__}' failed, continuing with next step: {e}")
 
     print("\nReady.")
