@@ -184,3 +184,35 @@ Remove `--dry-run` to actually delete the scanned resources.
 
 - boto3>=1.26.0 (see `requirements.txt`)
 - AWS credentials configured for the given `--profile` with permissions for `s3:ListAllMyBuckets`, `s3:GetBucketLocation`, `s3:ListBucket`, `s3:DeleteObject`, and `s3:DeleteBucket`
+
+## az-offboard-users
+
+A Python utility that offboards a list of users from Microsoft Entra ID and Azure RBAC. For each UPN, it:
+
+1. Blocks sign-in (`accountEnabled = False`)
+2. Revokes all active sessions / refresh tokens
+3. Removes the user from every group they belong to
+4. Removes every directory role assignment (Entra ID roles)
+5. Removes every Azure RBAC role assignment at any scope (via Azure CLI, reusing your existing `az login` session)
+
+### Features
+
+- Accepts UPNs directly via `--upns` or from a file (one per line) via `--upns-file`
+- Authenticates to Microsoft Graph interactively via device code flow (MSAL)
+- Resolves each UPN to its object ID, including guest UPNs containing literal `#` characters (e.g. `...#EXT#@...`)
+- Supports a `--dry-run` mode to preview what would be changed without making any changes
+
+### Usage
+
+```bash
+python3 az-offboard-users --tenant-id <tenant-id> --upns user1_contoso.com#EXT#@tenant.onmicrosoft.com user2@tenant.onmicrosoft.com --dry-run
+python3 az-offboard-users --tenant-id <tenant-id> --upns-file users_to_remove.txt --dry-run
+```
+
+Remove `--dry-run` to actually apply the offboarding changes.
+
+### Requirements
+
+- msal==1.38.0, requests==2.34.2 (see `requirements.txt`)
+- Azure CLI installed and logged in (`az login`) with permissions to view/remove role assignments (User Access Administrator or Owner)
+- Delegated Microsoft Graph permissions, consented by an admin: `User.ReadWrite.All`, `Group.ReadWrite.All`, `RoleManagement.ReadWrite.Directory`
