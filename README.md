@@ -216,3 +216,29 @@ Remove `--dry-run` to actually apply the offboarding changes.
 - msal==1.38.0, requests==2.34.2 (see `requirements.txt`)
 - Azure CLI installed and logged in (`az login`) with permissions to view/remove role assignments (User Access Administrator or Owner)
 - Delegated Microsoft Graph permissions, consented by an admin: `User.ReadWrite.All`, `Group.ReadWrite.All`, `RoleManagement.ReadWrite.Directory`
+
+## az-list-entraid-users
+
+A Python utility that lists all Microsoft Entra ID (Azure AD) users via Microsoft Graph, with optional CSV export and UPN filtering.
+
+### Features
+
+- Authenticates to Microsoft Graph interactively via device code flow (MSAL)
+- Walks Graph's pagination to retrieve every user in the tenant
+- Supports `--upn-contains` to filter users by a substring of their UserPrincipalName
+- Supports `--only-enabled` to include only enabled accounts
+- Supports `--export` to write the results to a CSV file
+
+### Usage
+
+```bash
+python3 az-list-entraid-users --tenant-id <tenant-id>
+python3 az-list-entraid-users --tenant-id <tenant-id> --export users.csv
+python3 az-list-entraid-users --tenant-id <tenant-id> --upn-contains hotaka
+python3 az-list-entraid-users --tenant-id <tenant-id> --only-enabled
+```
+
+### Requirements
+
+- msal==1.38.0, requests==2.34.2 (see `requirements.txt`)
+- Delegated Microsoft Graph permission, consented by an admin or the user: `User.Read.All`
