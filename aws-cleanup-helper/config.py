@@ -4,6 +4,7 @@ import enum
 class ToolConfig:
 
   class Services(enum.Enum):
+    EC2 = "ec2"
     S3 = "s3"
 
   def __init__(

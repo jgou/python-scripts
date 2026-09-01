@@ -160,22 +160,25 @@ Remove `--dry-run` to actually copy the objects, or pass `--verify-only` to skip
 
 ## aws-cleanup-helper
 
-A Python utility that scans an AWS account and deletes resources, organized per AWS service. Currently supports S3: it scans **every bucket in the account** and, unless `--dry-run` is passed, deletes all of them (objects included).
+A Python utility that scans an AWS account and deletes resources, organized per AWS service. Currently supports S3 (every bucket in the account) and EC2 (every instance in the account, plus its attached EBS volumes). Unless `--dry-run` is passed, everything scanned gets deleted.
 
 > [!WARNING]
-> Without `--dry-run`, this tool deletes every S3 bucket in the target account — it does not filter by name, age, or emptiness. Always run with `--dry-run` first and review the output before running for real.
+> Without `--dry-run`, this tool deletes every S3 bucket and terminates every EC2 instance in the target account — it does not filter by name, age, tags, or state. Always run with `--dry-run` first and review the output before running for real.
 
 ### Features
 
 - Scans and reports all S3 buckets in the account, their region, and whether they contain objects
 - Deletes all objects in each bucket, then the bucket itself
-- Supports a `--services` flag to limit which AWS services are scanned/deleted, comma-separated (currently only `s3` is implemented)
+- Scans and reports all EC2 instances across regions, their state, and their attached EBS volumes
+- Terminates each EC2 instance; for volumes not set to delete on termination, waits for the instance to finish terminating and deletes them explicitly
+- Supports a `--regions` flag to limit which AWS regions are scanned (EC2 only; S3 buckets are always listed account-wide), comma-separated. Default is all regions.
+- Supports a `--services` flag to limit which AWS services are scanned/deleted, comma-separated (`ec2`, `s3`)
 - Supports a `--dry-run` mode to preview what would be deleted without making any changes
 
 ### Usage
 
 ```bash
-python3 aws-cleanup-helper --profile my-aws-profile --services s3 --dry-run
+python3 aws-cleanup-helper --profile my-aws-profile --services ec2,s3 --dry-run
 ```
 
 Remove `--dry-run` to actually delete the scanned resources.
@@ -183,7 +186,7 @@ Remove `--dry-run` to actually delete the scanned resources.
 ### Requirements
 
 - boto3>=1.26.0 (see `requirements.txt`)
-- AWS credentials configured for the given `--profile` with permissions for `s3:ListAllMyBuckets`, `s3:GetBucketLocation`, `s3:ListBucket`, `s3:DeleteObject`, and `s3:DeleteBucket`
+- AWS credentials configured for the given `--profile` with permissions for `s3:ListAllMyBuckets`, `s3:GetBucketLocation`, `s3:ListBucket`, `s3:DeleteObject`, `s3:DeleteBucket`, `ec2:DescribeInstances`, `ec2:TerminateInstances`, and `ec2:DeleteVolume`
 
 ## az-offboard-users
 
