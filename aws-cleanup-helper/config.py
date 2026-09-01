@@ -4,12 +4,19 @@ import enum
 class ToolConfig:
 
   class Services(enum.Enum):
+    CLIENT_VPN = "clientvpn"
     EC2 = "ec2"
+    EIP = "eip"
     ELASTICACHE = "elasticache"
     ELB = "elb"
+    NAT_GATEWAY = "natgateway"
+    NETWORK_FIREWALL = "networkfirewall"
     RDS = "rds"
     ROUTE53 = "route53"
     S3 = "s3"
+    TRANSIT_GATEWAY = "transitgateway"
+    VPC_ENDPOINT = "vpcendpoint"
+    VPN = "vpn"
 
   def __init__(
     self,

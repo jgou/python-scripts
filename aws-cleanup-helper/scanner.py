@@ -7,6 +7,13 @@ from route53scanner import Route53Scanner
 from elbscanner import ELBScanner
 from rdsscanner import RDSScanner
 from elasticachescanner import ElastiCacheScanner
+from natgatewayscanner import NatGatewayScanner
+from elasticipscanner import ElasticIPScanner
+from vpcendpointscanner import VpcEndpointScanner
+from vpnscanner import VpnScanner
+from transitgatewayscanner import TransitGatewayScanner
+from clientvpnscanner import ClientVpnScanner
+from networkfirewallscanner import NetworkFirewallScanner
 
 class Scanner:
     def __init__(self, config: ToolConfig) -> None:
@@ -21,6 +28,13 @@ class Scanner:
         self.elb_scanner: ELBScanner = ELBScanner(session=self.session, config=self.config)
         self.rds_scanner: RDSScanner = RDSScanner(session=self.session, config=self.config)
         self.elasticache_scanner: ElastiCacheScanner = ElastiCacheScanner(session=self.session, config=self.config)
+        self.nat_gateway_scanner: NatGatewayScanner = NatGatewayScanner(session=self.session, config=self.config)
+        self.eip_scanner: ElasticIPScanner = ElasticIPScanner(session=self.session, config=self.config)
+        self.vpc_endpoint_scanner: VpcEndpointScanner = VpcEndpointScanner(session=self.session, config=self.config)
+        self.vpn_scanner: VpnScanner = VpnScanner(session=self.session, config=self.config)
+        self.transit_gateway_scanner: TransitGatewayScanner = TransitGatewayScanner(session=self.session, config=self.config)
+        self.client_vpn_scanner: ClientVpnScanner = ClientVpnScanner(session=self.session, config=self.config)
+        self.network_firewall_scanner: NetworkFirewallScanner = NetworkFirewallScanner(session=self.session, config=self.config)
 
     def __authenticate(self) -> None:
         try:
@@ -49,6 +63,27 @@ class Scanner:
         if ToolConfig.Services.ELASTICACHE.value in self.config.services:
             self.elasticache_scanner.scan()
             self.elasticache_scanner.verbose_scan()
+        if ToolConfig.Services.NAT_GATEWAY.value in self.config.services:
+            self.nat_gateway_scanner.scan()
+            self.nat_gateway_scanner.verbose_scan()
+        if ToolConfig.Services.EIP.value in self.config.services:
+            self.eip_scanner.scan()
+            self.eip_scanner.verbose_scan()
+        if ToolConfig.Services.VPC_ENDPOINT.value in self.config.services:
+            self.vpc_endpoint_scanner.scan()
+            self.vpc_endpoint_scanner.verbose_scan()
+        if ToolConfig.Services.VPN.value in self.config.services:
+            self.vpn_scanner.scan()
+            self.vpn_scanner.verbose_scan()
+        if ToolConfig.Services.TRANSIT_GATEWAY.value in self.config.services:
+            self.transit_gateway_scanner.scan()
+            self.transit_gateway_scanner.verbose_scan()
+        if ToolConfig.Services.CLIENT_VPN.value in self.config.services:
+            self.client_vpn_scanner.scan()
+            self.client_vpn_scanner.verbose_scan()
+        if ToolConfig.Services.NETWORK_FIREWALL.value in self.config.services:
+            self.network_firewall_scanner.scan()
+            self.network_firewall_scanner.verbose_scan()
 
     def delete(self) -> None:
         if ToolConfig.Services.S3.value in self.config.services:
@@ -63,5 +98,21 @@ class Scanner:
             self.rds_scanner.delete()
         if ToolConfig.Services.ELASTICACHE.value in self.config.services:
             self.elasticache_scanner.delete()
+        if ToolConfig.Services.CLIENT_VPN.value in self.config.services:
+            self.client_vpn_scanner.delete()
+        if ToolConfig.Services.VPN.value in self.config.services:
+            self.vpn_scanner.delete()
+        if ToolConfig.Services.TRANSIT_GATEWAY.value in self.config.services:
+            self.transit_gateway_scanner.delete()
+        if ToolConfig.Services.VPC_ENDPOINT.value in self.config.services:
+            self.vpc_endpoint_scanner.delete()
+        if ToolConfig.Services.NETWORK_FIREWALL.value in self.config.services:
+            self.network_firewall_scanner.delete()
+        # NAT Gateways release their Elastic IP association on deletion, so delete them
+        # before releasing Elastic IPs to avoid a transient disassociation conflict.
+        if ToolConfig.Services.NAT_GATEWAY.value in self.config.services:
+            self.nat_gateway_scanner.delete()
+        if ToolConfig.Services.EIP.value in self.config.services:
+            self.eip_scanner.delete()
 
     

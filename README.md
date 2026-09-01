@@ -160,10 +160,10 @@ Remove `--dry-run` to actually copy the objects, or pass `--verify-only` to skip
 
 ## aws-cleanup-helper
 
-A Python utility that scans an AWS account and deletes resources, organized per AWS service. Currently supports S3 (every bucket in the account), EC2 (every instance in the account, plus its attached EBS volumes), Route 53 (every hosted zone in the account, plus its record sets), ELB (every Application/Network Load Balancer in the account), RDS (every DB instance in the account), and ElastiCache (every cache cluster in the account). Unless `--dry-run` is passed, everything scanned gets deleted.
+A Python utility that scans an AWS account and deletes resources, organized per AWS service. Currently supports S3 (every bucket in the account), EC2 (every instance in the account, plus its attached EBS volumes), Route 53 (every hosted zone in the account, plus its record sets), ELB (every Application/Network Load Balancer in the account), RDS (every DB instance in the account), ElastiCache (every cache cluster in the account), and the VPC-related cost drivers: NAT Gateways, Elastic IPs, VPC endpoints, Site-to-Site VPN connections, Transit Gateway attachments, Client VPN endpoints, and Network Firewalls. Unless `--dry-run` is passed, everything scanned gets deleted.
 
 > [!WARNING]
-> Without `--dry-run`, this tool deletes every S3 bucket, terminates every EC2 instance, deletes every Route 53 hosted zone, deletes every load balancer, deletes every RDS instance, and deletes every ElastiCache cluster in the target account — it does not filter by name, age, tags, or state. Always run with `--dry-run` first and review the output before running for real.
+> Without `--dry-run`, this tool deletes every resource it scans in the target account — it does not filter by name, age, tags, or state. Always run with `--dry-run` first and review the output before running for real.
 
 ### Features
 
@@ -179,23 +179,30 @@ A Python utility that scans an AWS account and deletes resources, organized per 
 - Disables deletion protection on each DB instance (required before it can be deleted), then deletes it
 - Scans and reports all ElastiCache cache clusters, replication groups, and serverless caches across regions, their engine and status
 - Deletes each one, taking a final snapshot first (Memcached doesn't support snapshots, so those are skipped)
-- Supports a `--regions` flag to limit which AWS regions are scanned (EC2, ELB, RDS, and ElastiCache only; S3 buckets and Route 53 hosted zones are always listed account-wide), comma-separated. Default is all regions.
-- Supports a `--services` flag to limit which AWS services are scanned/deleted, comma-separated (`ec2`, `elasticache`, `elb`, `rds`, `route53`, `s3`)
-- Supports a `--skip-final-snapshot` flag to delete RDS instances and Redis ElastiCache clusters without taking a final snapshot; by default a final snapshot is taken before each deletion
+- Scans and reports all NAT Gateways across regions, then deletes them
+- Scans and reports all Elastic IPs across regions and whether they're associated; disassociates and releases each one
+- Scans and reports all VPC endpoints (interface, gateway, and Gateway Load Balancer) across regions, then deletes them
+- Scans and reports all Site-to-Site VPN connections, Customer Gateways, and Virtual Private Gateways across regions; deletes VPN connections, then Customer Gateways, then detaches and deletes Virtual Private Gateways
+- Scans and reports all Transit Gateway attachments across regions, then deletes VPC and peering attachments (VPN attachments are removed via their VPN connection; other types are skipped)
+- Scans and reports all Client VPN endpoints across regions; disassociates their target networks, then deletes them
+- Scans and reports all Network Firewalls across regions; disables delete protection where enabled, then deletes them
+- Supports a `--regions` flag to limit which AWS regions are scanned (all services except S3 and Route 53, which are always listed account-wide), comma-separated. Default is all regions.
+- Supports a `--services` flag to limit which AWS services are scanned/deleted, comma-separated (`clientvpn`, `ec2`, `eip`, `elasticache`, `elb`, `natgateway`, `networkfirewall`, `rds`, `route53`, `s3`, `transitgateway`, `vpcendpoint`, `vpn`)
+- Supports a `--skip-final-snapshot` flag to delete RDS instances and Redis/Valkey ElastiCache clusters without taking a final snapshot; by default a final snapshot is taken before each deletion
 - Supports a `--dry-run` mode to preview what would be deleted without making any changes
 
 ### Usage
 
 ```bash
-python3 aws-cleanup-helper --profile my-aws-profile --services ec2,elasticache,elb,rds,route53,s3 --dry-run
+python3 aws-cleanup-helper --profile my-aws-profile --services ec2,elasticache,elb,rds,route53,s3,natgateway,eip,vpcendpoint,vpn,transitgateway,clientvpn,networkfirewall --dry-run
 ```
 
-Remove `--dry-run` to actually delete the scanned resources. Add `--skip-final-snapshot` to skip taking a final snapshot of RDS instances and Redis ElastiCache clusters before deleting them.
+Remove `--dry-run` to actually delete the scanned resources. Add `--skip-final-snapshot` to skip taking a final snapshot of RDS instances and Redis/Valkey ElastiCache clusters before deleting them.
 
 ### Requirements
 
 - boto3>=1.26.0 (see `requirements.txt`)
-- AWS credentials configured for the given `--profile` with permissions for `s3:ListAllMyBuckets`, `s3:GetBucketLocation`, `s3:ListBucket`, `s3:DeleteObject`, `s3:DeleteBucket`, `ec2:DescribeInstances`, `ec2:TerminateInstances`, `ec2:DeleteVolume`, `route53:ListHostedZones`, `route53:ListResourceRecordSets`, `route53:ChangeResourceRecordSets`, `route53:DeleteHostedZone`, `elasticloadbalancing:DescribeLoadBalancers`, `elasticloadbalancing:ModifyLoadBalancerAttributes`, `elasticloadbalancing:DescribeTargetGroups`, `elasticloadbalancing:DescribeTargetHealth`, `elasticloadbalancing:DeregisterTargets`, `elasticloadbalancing:DeleteLoadBalancer`, `rds:DescribeDBInstances`, `rds:ModifyDBInstance`, `rds:DeleteDBInstance`, `elasticache:DescribeCacheClusters`, `elasticache:DeleteCacheCluster`, `elasticache:DescribeReplicationGroups`, `elasticache:DeleteReplicationGroup`, `elasticache:DescribeServerlessCaches`, and `elasticache:DeleteServerlessCache`
+- AWS credentials configured for the given `--profile` with permissions for `s3:ListAllMyBuckets`, `s3:GetBucketLocation`, `s3:ListBucket`, `s3:DeleteObject`, `s3:DeleteBucket`, `ec2:DescribeInstances`, `ec2:TerminateInstances`, `ec2:DeleteVolume`, `route53:ListHostedZones`, `route53:ListResourceRecordSets`, `route53:ChangeResourceRecordSets`, `route53:DeleteHostedZone`, `elasticloadbalancing:DescribeLoadBalancers`, `elasticloadbalancing:ModifyLoadBalancerAttributes`, `elasticloadbalancing:DescribeTargetGroups`, `elasticloadbalancing:DescribeTargetHealth`, `elasticloadbalancing:DeregisterTargets`, `elasticloadbalancing:DeleteLoadBalancer`, `rds:DescribeDBInstances`, `rds:ModifyDBInstance`, `rds:DeleteDBInstance`, `elasticache:DescribeCacheClusters`, `elasticache:DeleteCacheCluster`, `elasticache:DescribeReplicationGroups`, `elasticache:DeleteReplicationGroup`, `elasticache:DescribeServerlessCaches`, `elasticache:DeleteServerlessCache`, `ec2:DescribeNatGateways`, `ec2:DeleteNatGateway`, `ec2:DescribeAddresses`, `ec2:DisassociateAddress`, `ec2:ReleaseAddress`, `ec2:DescribeVpcEndpoints`, `ec2:DeleteVpcEndpoints`, `ec2:DescribeVpnConnections`, `ec2:DeleteVpnConnection`, `ec2:DescribeCustomerGateways`, `ec2:DeleteCustomerGateway`, `ec2:DescribeVpnGateways`, `ec2:DetachVpnGateway`, `ec2:DeleteVpnGateway`, `ec2:DescribeTransitGatewayAttachments`, `ec2:DeleteTransitGatewayVpcAttachment`, `ec2:DeleteTransitGatewayPeeringAttachment`, `ec2:DescribeClientVpnEndpoints`, `ec2:DescribeClientVpnTargetNetworks`, `ec2:DisassociateClientVpnTargetNetwork`, `ec2:DeleteClientVpnEndpoint`, `network-firewall:ListFirewalls`, `network-firewall:DescribeFirewall`, `network-firewall:UpdateFirewallDeleteProtection`, and `network-firewall:DeleteFirewall`
 
 ## az-offboard-users
 
