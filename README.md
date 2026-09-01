@@ -160,10 +160,10 @@ Remove `--dry-run` to actually copy the objects, or pass `--verify-only` to skip
 
 ## aws-cleanup-helper
 
-A Python utility that scans an AWS account and deletes resources, organized per AWS service. Currently supports S3 (every bucket in the account), EC2 (every instance in the account, plus its attached EBS volumes), and Route 53 (every hosted zone in the account, plus its record sets). Unless `--dry-run` is passed, everything scanned gets deleted.
+A Python utility that scans an AWS account and deletes resources, organized per AWS service. Currently supports S3 (every bucket in the account), EC2 (every instance in the account, plus its attached EBS volumes), Route 53 (every hosted zone in the account, plus its record sets), and ELB (every Application/Network Load Balancer in the account). Unless `--dry-run` is passed, everything scanned gets deleted.
 
 > [!WARNING]
-> Without `--dry-run`, this tool deletes every S3 bucket, terminates every EC2 instance, and deletes every Route 53 hosted zone in the target account — it does not filter by name, age, tags, or state. Always run with `--dry-run` first and review the output before running for real.
+> Without `--dry-run`, this tool deletes every S3 bucket, terminates every EC2 instance, deletes every Route 53 hosted zone, and deletes every load balancer in the target account — it does not filter by name, age, tags, or state. Always run with `--dry-run` first and review the output before running for real.
 
 ### Features
 
@@ -173,14 +173,16 @@ A Python utility that scans an AWS account and deletes resources, organized per 
 - Terminates each EC2 instance; for volumes not set to delete on termination, waits for the instance to finish terminating and deletes them explicitly
 - Scans and reports all Route 53 hosted zones, whether they're public or private, and their record count
 - Deletes all non-default record sets in each hosted zone (the apex `NS`/`SOA` records are left alone, since they're removed automatically), then the hosted zone itself
-- Supports a `--regions` flag to limit which AWS regions are scanned (EC2 only; S3 buckets and Route 53 hosted zones are always listed account-wide), comma-separated. Default is all regions.
-- Supports a `--services` flag to limit which AWS services are scanned/deleted, comma-separated (`ec2`, `route53`, `s3`)
+- Scans and reports all Application/Network Load Balancers across regions, their type and state
+- Disables deletion protection on each load balancer (required before it can be deleted), then deletes it
+- Supports a `--regions` flag to limit which AWS regions are scanned (EC2 and ELB only; S3 buckets and Route 53 hosted zones are always listed account-wide), comma-separated. Default is all regions.
+- Supports a `--services` flag to limit which AWS services are scanned/deleted, comma-separated (`ec2`, `elb`, `route53`, `s3`)
 - Supports a `--dry-run` mode to preview what would be deleted without making any changes
 
 ### Usage
 
 ```bash
-python3 aws-cleanup-helper --profile my-aws-profile --services ec2,route53,s3 --dry-run
+python3 aws-cleanup-helper --profile my-aws-profile --services ec2,elb,route53,s3 --dry-run
 ```
 
 Remove `--dry-run` to actually delete the scanned resources.
@@ -188,7 +190,7 @@ Remove `--dry-run` to actually delete the scanned resources.
 ### Requirements
 
 - boto3>=1.26.0 (see `requirements.txt`)
-- AWS credentials configured for the given `--profile` with permissions for `s3:ListAllMyBuckets`, `s3:GetBucketLocation`, `s3:ListBucket`, `s3:DeleteObject`, `s3:DeleteBucket`, `ec2:DescribeInstances`, `ec2:TerminateInstances`, `ec2:DeleteVolume`, `route53:ListHostedZones`, `route53:ListResourceRecordSets`, `route53:ChangeResourceRecordSets`, and `route53:DeleteHostedZone`
+- AWS credentials configured for the given `--profile` with permissions for `s3:ListAllMyBuckets`, `s3:GetBucketLocation`, `s3:ListBucket`, `s3:DeleteObject`, `s3:DeleteBucket`, `ec2:DescribeInstances`, `ec2:TerminateInstances`, `ec2:DeleteVolume`, `route53:ListHostedZones`, `route53:ListResourceRecordSets`, `route53:ChangeResourceRecordSets`, `route53:DeleteHostedZone`, `elasticloadbalancing:DescribeLoadBalancers`, `elasticloadbalancing:ModifyLoadBalancerAttributes`, and `elasticloadbalancing:DeleteLoadBalancer`
 
 ## az-offboard-users
 
