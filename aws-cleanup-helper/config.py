@@ -5,10 +5,12 @@ class ToolConfig:
 
   class Services(enum.Enum):
     CLIENT_VPN = "clientvpn"
+    CLOUDFRONT = "cloudfront"
     EC2 = "ec2"
     EIP = "eip"
     ELASTICACHE = "elasticache"
     ELB = "elb"
+    LAMBDA = "lambda"
     NAT_GATEWAY = "natgateway"
     NETWORK_FIREWALL = "networkfirewall"
     RDS = "rds"

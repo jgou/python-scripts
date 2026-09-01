@@ -14,6 +14,8 @@ from vpnscanner import VpnScanner
 from transitgatewayscanner import TransitGatewayScanner
 from clientvpnscanner import ClientVpnScanner
 from networkfirewallscanner import NetworkFirewallScanner
+from cloudfrontscanner import CloudFrontScanner
+from lambdascanner import LambdaScanner
 
 class Scanner:
     def __init__(self, config: ToolConfig) -> None:
@@ -35,6 +37,8 @@ class Scanner:
         self.transit_gateway_scanner: TransitGatewayScanner = TransitGatewayScanner(session=self.session, config=self.config)
         self.client_vpn_scanner: ClientVpnScanner = ClientVpnScanner(session=self.session, config=self.config)
         self.network_firewall_scanner: NetworkFirewallScanner = NetworkFirewallScanner(session=self.session, config=self.config)
+        self.cloudfront_scanner: CloudFrontScanner = CloudFrontScanner(session=self.session, config=self.config)
+        self.lambda_scanner: LambdaScanner = LambdaScanner(session=self.session, config=self.config)
 
     def __authenticate(self) -> None:
         try:
@@ -84,6 +88,12 @@ class Scanner:
         if ToolConfig.Services.NETWORK_FIREWALL.value in self.config.services:
             self.network_firewall_scanner.scan()
             self.network_firewall_scanner.verbose_scan()
+        if ToolConfig.Services.CLOUDFRONT.value in self.config.services:
+            self.cloudfront_scanner.scan()
+            self.cloudfront_scanner.verbose_scan()
+        if ToolConfig.Services.LAMBDA.value in self.config.services:
+            self.lambda_scanner.scan()
+            self.lambda_scanner.verbose_scan()
 
     def delete(self) -> None:
         if ToolConfig.Services.S3.value in self.config.services:
@@ -98,6 +108,12 @@ class Scanner:
             self.rds_scanner.delete()
         if ToolConfig.Services.ELASTICACHE.value in self.config.services:
             self.elasticache_scanner.delete()
+        # A Lambda@Edge function still associated with a CloudFront distribution can't be
+        # deleted, so distributions are removed first.
+        if ToolConfig.Services.CLOUDFRONT.value in self.config.services:
+            self.cloudfront_scanner.delete()
+        if ToolConfig.Services.LAMBDA.value in self.config.services:
+            self.lambda_scanner.delete()
         if ToolConfig.Services.CLIENT_VPN.value in self.config.services:
             self.client_vpn_scanner.delete()
         if ToolConfig.Services.VPN.value in self.config.services:

@@ -6,7 +6,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="AWS Cleanup Helper")
     parser.add_argument("--profile", help="AWS profile to use")
     parser.add_argument("--regions", help="AWS regions to use, comma-separated. Default is all regions.")
-    parser.add_argument("--services", type=ToolConfig.parse_services, help="AWS services to scan and delete, comma-separated (clientvpn, ec2, eip, elasticache, elb, natgateway, networkfirewall, rds, route53, s3, transitgateway, vpcendpoint, vpn). Default is all services.")
+    parser.add_argument("--services", type=ToolConfig.parse_services, help="AWS services to scan and delete, comma-separated (clientvpn, cloudfront, ec2, eip, elasticache, elb, lambda, natgateway, networkfirewall, rds, route53, s3, transitgateway, vpcendpoint, vpn). Default is all services.")
     parser.add_argument("--dry-run", action="store_true", help="Perform a dry run without making any changes")
     parser.add_argument("--skip-final-snapshot", action="store_true", help="Skip final snapshot for RDS instances")
     args = parser.parse_args()
