@@ -5,6 +5,8 @@ from s3scanner import S3Scanner
 from ec2scanner import Ec2Scanner
 from route53scanner import Route53Scanner
 from elbscanner import ELBScanner
+from rdsscanner import RDSScanner
+from elasticachescanner import ElastiCacheScanner
 
 class Scanner:
     def __init__(self, config: ToolConfig) -> None:
@@ -17,6 +19,8 @@ class Scanner:
         self.ec2_scanner: Ec2Scanner = Ec2Scanner(session=self.session, config=self.config)
         self.route53_scanner: Route53Scanner = Route53Scanner(session=self.session, config=self.config)
         self.elb_scanner: ELBScanner = ELBScanner(session=self.session, config=self.config)
+        self.rds_scanner: RDSScanner = RDSScanner(session=self.session, config=self.config)
+        self.elasticache_scanner: ElastiCacheScanner = ElastiCacheScanner(session=self.session, config=self.config)
 
     def __authenticate(self) -> None:
         try:
@@ -39,6 +43,12 @@ class Scanner:
         if ToolConfig.Services.ELB.value in self.config.services:
             self.elb_scanner.scan()
             self.elb_scanner.verbose_scan()
+        if ToolConfig.Services.RDS.value in self.config.services:
+            self.rds_scanner.scan()
+            self.rds_scanner.verbose_scan()
+        if ToolConfig.Services.ELASTICACHE.value in self.config.services:
+            self.elasticache_scanner.scan()
+            self.elasticache_scanner.verbose_scan()
 
     def delete(self) -> None:
         if ToolConfig.Services.S3.value in self.config.services:
@@ -49,5 +59,9 @@ class Scanner:
             self.route53_scanner.delete()
         if ToolConfig.Services.ELB.value in self.config.services:
             self.elb_scanner.delete()
+        if ToolConfig.Services.RDS.value in self.config.services:
+            self.rds_scanner.delete()
+        if ToolConfig.Services.ELASTICACHE.value in self.config.services:
+            self.elasticache_scanner.delete()
 
     

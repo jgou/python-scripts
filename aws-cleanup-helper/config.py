@@ -5,7 +5,9 @@ class ToolConfig:
 
   class Services(enum.Enum):
     EC2 = "ec2"
+    ELASTICACHE = "elasticache"
     ELB = "elb"
+    RDS = "rds"
     ROUTE53 = "route53"
     S3 = "s3"
 

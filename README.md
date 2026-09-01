@@ -160,10 +160,10 @@ Remove `--dry-run` to actually copy the objects, or pass `--verify-only` to skip
 
 ## aws-cleanup-helper
 
-A Python utility that scans an AWS account and deletes resources, organized per AWS service. Currently supports S3 (every bucket in the account), EC2 (every instance in the account, plus its attached EBS volumes), Route 53 (every hosted zone in the account, plus its record sets), and ELB (every Application/Network Load Balancer in the account). Unless `--dry-run` is passed, everything scanned gets deleted.
+A Python utility that scans an AWS account and deletes resources, organized per AWS service. Currently supports S3 (every bucket in the account), EC2 (every instance in the account, plus its attached EBS volumes), Route 53 (every hosted zone in the account, plus its record sets), ELB (every Application/Network Load Balancer in the account), RDS (every DB instance in the account), and ElastiCache (every cache cluster in the account). Unless `--dry-run` is passed, everything scanned gets deleted.
 
 > [!WARNING]
-> Without `--dry-run`, this tool deletes every S3 bucket, terminates every EC2 instance, deletes every Route 53 hosted zone, and deletes every load balancer in the target account — it does not filter by name, age, tags, or state. Always run with `--dry-run` first and review the output before running for real.
+> Without `--dry-run`, this tool deletes every S3 bucket, terminates every EC2 instance, deletes every Route 53 hosted zone, deletes every load balancer, deletes every RDS instance, and deletes every ElastiCache cluster in the target account — it does not filter by name, age, tags, or state. Always run with `--dry-run` first and review the output before running for real.
 
 ### Features
 
@@ -175,22 +175,27 @@ A Python utility that scans an AWS account and deletes resources, organized per 
 - Deletes all non-default record sets in each hosted zone (the apex `NS`/`SOA` records are left alone, since they're removed automatically), then the hosted zone itself
 - Scans and reports all Application/Network Load Balancers across regions, their type and state
 - Disables deletion protection on each load balancer (required before it can be deleted), then deletes it
-- Supports a `--regions` flag to limit which AWS regions are scanned (EC2 and ELB only; S3 buckets and Route 53 hosted zones are always listed account-wide), comma-separated. Default is all regions.
-- Supports a `--services` flag to limit which AWS services are scanned/deleted, comma-separated (`ec2`, `elb`, `route53`, `s3`)
+- Scans and reports all RDS DB instances across regions, their engine and status
+- Disables deletion protection on each DB instance (required before it can be deleted), then deletes it
+- Scans and reports all ElastiCache cache clusters across regions, their engine and status
+- Deletes each cache cluster, taking a final snapshot first for Redis clusters (Memcached doesn't support snapshots)
+- Supports a `--regions` flag to limit which AWS regions are scanned (EC2, ELB, RDS, and ElastiCache only; S3 buckets and Route 53 hosted zones are always listed account-wide), comma-separated. Default is all regions.
+- Supports a `--services` flag to limit which AWS services are scanned/deleted, comma-separated (`ec2`, `elasticache`, `elb`, `rds`, `route53`, `s3`)
+- Supports a `--skip-final-snapshot` flag to delete RDS instances and Redis ElastiCache clusters without taking a final snapshot; by default a final snapshot is taken before each deletion
 - Supports a `--dry-run` mode to preview what would be deleted without making any changes
 
 ### Usage
 
 ```bash
-python3 aws-cleanup-helper --profile my-aws-profile --services ec2,elb,route53,s3 --dry-run
+python3 aws-cleanup-helper --profile my-aws-profile --services ec2,elasticache,elb,rds,route53,s3 --dry-run
 ```
 
-Remove `--dry-run` to actually delete the scanned resources.
+Remove `--dry-run` to actually delete the scanned resources. Add `--skip-final-snapshot` to skip taking a final snapshot of RDS instances and Redis ElastiCache clusters before deleting them.
 
 ### Requirements
 
 - boto3>=1.26.0 (see `requirements.txt`)
-- AWS credentials configured for the given `--profile` with permissions for `s3:ListAllMyBuckets`, `s3:GetBucketLocation`, `s3:ListBucket`, `s3:DeleteObject`, `s3:DeleteBucket`, `ec2:DescribeInstances`, `ec2:TerminateInstances`, `ec2:DeleteVolume`, `route53:ListHostedZones`, `route53:ListResourceRecordSets`, `route53:ChangeResourceRecordSets`, `route53:DeleteHostedZone`, `elasticloadbalancing:DescribeLoadBalancers`, `elasticloadbalancing:ModifyLoadBalancerAttributes`, and `elasticloadbalancing:DeleteLoadBalancer`
+- AWS credentials configured for the given `--profile` with permissions for `s3:ListAllMyBuckets`, `s3:GetBucketLocation`, `s3:ListBucket`, `s3:DeleteObject`, `s3:DeleteBucket`, `ec2:DescribeInstances`, `ec2:TerminateInstances`, `ec2:DeleteVolume`, `route53:ListHostedZones`, `route53:ListResourceRecordSets`, `route53:ChangeResourceRecordSets`, `route53:DeleteHostedZone`, `elasticloadbalancing:DescribeLoadBalancers`, `elasticloadbalancing:ModifyLoadBalancerAttributes`, `elasticloadbalancing:DeleteLoadBalancer`, `rds:DescribeDBInstances`, `rds:ModifyDBInstance`, `rds:DeleteDBInstance`, `elasticache:DescribeCacheClusters`, and `elasticache:DeleteCacheCluster`
 
 ## az-offboard-users
 
