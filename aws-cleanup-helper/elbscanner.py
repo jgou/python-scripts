@@ -51,14 +51,38 @@ class ELBScanner:
                 Attributes=[{"Key": "deletion_protection.enabled", "Value": "false"}]
             ) if not self.config.dry_run else print(f"Dry run: would disable deletion protection for load balancer {arn}")
         except ClientError as e:
-            pass
+            print(f"Could not disable deletion protection for load balancer {arn}: {e}")
+
+    def __deregister_from_target_groups(self, region: str, arn: str) -> None:
+        try:
+            elbv2 = self.session.client("elbv2", region_name=region)
+            paginator = elbv2.get_paginator("describe_target_groups")
+            for page in paginator.paginate():
+                for target_group in page.get("TargetGroups", []):
+                    # A load balancer can itself be registered as a target (e.g. an ALB
+                    # fronted by an NLB or Global Accelerator); it must be deregistered
+                    # from any such target group before it can be deleted.
+                    if target_group.get("TargetType") != "alb":
+                        continue
+                    target_group_arn = target_group["TargetGroupArn"]
+                    health = elbv2.describe_target_health(TargetGroupArn=target_group_arn)
+                    for target in health.get("TargetHealthDescriptions", []):
+                        if target.get("Target", {}).get("Id") != arn:
+                            continue
+                        if self.config.dry_run:
+                            print(f"Dry run: would deregister load balancer {arn} from target group {target_group_arn}")
+                            continue
+                        elbv2.deregister_targets(TargetGroupArn=target_group_arn, Targets=[{"Id": arn}])
+                        print(f"Deregistered load balancer {arn} from target group {target_group_arn}")
+        except ClientError as e:
+            print(f"Could not deregister load balancer {arn} from target groups: {e}")
 
     def __delete_load_balancer(self, region: str, arn: str) -> None:
         try:
             elbv2 = self.session.client("elbv2", region_name=region)
             elbv2.delete_load_balancer(LoadBalancerArn=arn) if not self.config.dry_run else print(f"Dry run: would delete load balancer {arn}")
         except ClientError as e:
-            pass
+            print(f"Could not delete load balancer {arn}: {e}")
 
     def delete(self) -> None:
         for lb_info in self.load_balancers_info:
@@ -66,4 +90,6 @@ class ELBScanner:
             arn = lb_info["LoadBalancerArn"]
             # Deletion protection blocks delete_load_balancer, so it must be turned off first.
             self.__disable_deletion_protection(region, arn)
+            # A load balancer registered as a target elsewhere must be deregistered first too.
+            self.__deregister_from_target_groups(region, arn)
             self.__delete_load_balancer(region, arn)

@@ -174,7 +174,7 @@ A Python utility that scans an AWS account and deletes resources, organized per 
 - Scans and reports all Route 53 hosted zones, whether they're public or private, and their record count
 - Deletes all non-default record sets in each hosted zone (the apex `NS`/`SOA` records are left alone, since they're removed automatically), then the hosted zone itself
 - Scans and reports all Application/Network Load Balancers across regions, their type and state
-- Disables deletion protection on each load balancer (required before it can be deleted), then deletes it
+- Disables deletion protection on each load balancer and deregisters it from any target group it's registered in as a target (both required before it can be deleted), then deletes it
 - Scans and reports all RDS DB instances across regions, their engine and status
 - Disables deletion protection on each DB instance (required before it can be deleted), then deletes it
 - Scans and reports all ElastiCache cache clusters, replication groups, and serverless caches across regions, their engine and status
@@ -195,7 +195,7 @@ Remove `--dry-run` to actually delete the scanned resources. Add `--skip-final-s
 ### Requirements
 
 - boto3>=1.26.0 (see `requirements.txt`)
-- AWS credentials configured for the given `--profile` with permissions for `s3:ListAllMyBuckets`, `s3:GetBucketLocation`, `s3:ListBucket`, `s3:DeleteObject`, `s3:DeleteBucket`, `ec2:DescribeInstances`, `ec2:TerminateInstances`, `ec2:DeleteVolume`, `route53:ListHostedZones`, `route53:ListResourceRecordSets`, `route53:ChangeResourceRecordSets`, `route53:DeleteHostedZone`, `elasticloadbalancing:DescribeLoadBalancers`, `elasticloadbalancing:ModifyLoadBalancerAttributes`, `elasticloadbalancing:DeleteLoadBalancer`, `rds:DescribeDBInstances`, `rds:ModifyDBInstance`, `rds:DeleteDBInstance`, `elasticache:DescribeCacheClusters`, `elasticache:DeleteCacheCluster`, `elasticache:DescribeReplicationGroups`, `elasticache:DeleteReplicationGroup`, `elasticache:DescribeServerlessCaches`, and `elasticache:DeleteServerlessCache`
+- AWS credentials configured for the given `--profile` with permissions for `s3:ListAllMyBuckets`, `s3:GetBucketLocation`, `s3:ListBucket`, `s3:DeleteObject`, `s3:DeleteBucket`, `ec2:DescribeInstances`, `ec2:TerminateInstances`, `ec2:DeleteVolume`, `route53:ListHostedZones`, `route53:ListResourceRecordSets`, `route53:ChangeResourceRecordSets`, `route53:DeleteHostedZone`, `elasticloadbalancing:DescribeLoadBalancers`, `elasticloadbalancing:ModifyLoadBalancerAttributes`, `elasticloadbalancing:DescribeTargetGroups`, `elasticloadbalancing:DescribeTargetHealth`, `elasticloadbalancing:DeregisterTargets`, `elasticloadbalancing:DeleteLoadBalancer`, `rds:DescribeDBInstances`, `rds:ModifyDBInstance`, `rds:DeleteDBInstance`, `elasticache:DescribeCacheClusters`, `elasticache:DeleteCacheCluster`, `elasticache:DescribeReplicationGroups`, `elasticache:DeleteReplicationGroup`, `elasticache:DescribeServerlessCaches`, and `elasticache:DeleteServerlessCache`
 
 ## az-offboard-users
 
