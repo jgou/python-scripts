@@ -5,6 +5,7 @@ class ToolConfig:
 
   class Services(enum.Enum):
     EC2 = "ec2"
+    ROUTE53 = "route53"
     S3 = "s3"
 
   def __init__(
