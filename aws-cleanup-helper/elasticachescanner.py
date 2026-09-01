@@ -16,6 +16,7 @@ class ElastiCacheScanner:
         self.config: ToolConfig = config
         self.clusters_info: list[dict[str, Any]] = []
         self.replication_groups_info: list[dict[str, Any]] = []
+        self.serverless_caches_info: list[dict[str, Any]] = []
 
     def __get_regions(self) -> list[str]:
         if self.config.regions:
@@ -62,18 +63,40 @@ class ElastiCacheScanner:
             groups = []
         return groups
 
+    def __list_serverless_caches(self, region: str) -> list[dict[str, Any]]:
+        caches = []
+        try:
+            elasticache = self.session.client("elasticache", region_name=region)
+            paginator = elasticache.get_paginator("describe_serverless_caches")
+            for page in paginator.paginate():
+                for cache in page.get("ServerlessCaches", []):
+                    caches.append({
+                        "ServerlessCacheName": cache["ServerlessCacheName"],
+                        "Region": region,
+                        "Status": cache.get("Status"),
+                        "Engine": cache.get("Engine")
+                    })
+        except ClientError as e:
+            print(f"Could not list ElastiCache serverless caches in {region}: {e}")
+            caches = []
+        return caches
+
     def scan(self) -> None:
         self.clusters_info = []
         self.replication_groups_info = []
+        self.serverless_caches_info = []
         for region in self.__get_regions():
             self.clusters_info.extend(self.__list_clusters(region))
             self.replication_groups_info.extend(self.__list_replication_groups(region))
+            self.serverless_caches_info.extend(self.__list_serverless_caches(region))
 
     def verbose_scan(self) -> None:
         for cluster_info in self.clusters_info:
             print(f"Cache Cluster: {cluster_info['CacheClusterId']} ({cluster_info['Engine']}), Region: {cluster_info['Region']}, Status: {cluster_info['Status']}")
         for group_info in self.replication_groups_info:
             print(f"Replication Group: {group_info['ReplicationGroupId']} ({group_info['Engine']}), Region: {group_info['Region']}, Status: {group_info['Status']}")
+        for cache_info in self.serverless_caches_info:
+            print(f"Serverless Cache: {cache_info['ServerlessCacheName']} ({cache_info['Engine']}), Region: {cache_info['Region']}, Status: {cache_info['Status']}")
 
     def __delete_cluster(self, region: str, cluster_info: dict[str, Any]) -> None:
         cluster_id = cluster_info["CacheClusterId"]
@@ -108,8 +131,27 @@ class ElastiCacheScanner:
         except ClientError as e:
             print(f"Could not delete replication group {group_id}: {e}")
 
+    def __delete_serverless_cache(self, region: str, cache_info: dict[str, Any]) -> None:
+        cache_name = cache_info["ServerlessCacheName"]
+        supports_snapshot = cache_info["Engine"] not in SNAPSHOT_UNSUPPORTED_ENGINES
+        try:
+            elasticache = self.session.client("elasticache", region_name=region)
+            if self.config.dry_run:
+                snapshot_note = "no final snapshot" if self.config.skip_final_snapshot or not supports_snapshot else "with a final snapshot"
+                print(f"Dry run: would delete serverless cache {cache_name} ({snapshot_note})")
+                return
+            if not self.config.skip_final_snapshot and supports_snapshot:
+                snapshot_name = f"{cache_name}-final-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}"
+                elasticache.delete_serverless_cache(ServerlessCacheName=cache_name, FinalSnapshotName=snapshot_name)
+            else:
+                elasticache.delete_serverless_cache(ServerlessCacheName=cache_name)
+        except ClientError as e:
+            print(f"Could not delete serverless cache {cache_name}: {e}")
+
     def delete(self) -> None:
         for cluster_info in self.clusters_info:
             self.__delete_cluster(cluster_info["Region"], cluster_info)
         for group_info in self.replication_groups_info:
             self.__delete_replication_group(group_info["Region"], group_info)
+        for cache_info in self.serverless_caches_info:
+            self.__delete_serverless_cache(cache_info["Region"], cache_info)
