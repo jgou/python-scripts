@@ -268,3 +268,25 @@ python3 az-list-entraid-users --tenant-id <tenant-id> --only-enabled
 
 - msal==1.38.0, requests==2.34.2 (see `requirements.txt`)
 - Delegated Microsoft Graph permission, consented by an admin or the user: `User.Read.All`
+
+## k8s-cronjob-logs
+
+A Python utility for fetching logs from the last N Job executions of a Kubernetes CronJob.
+
+### Features
+
+- Finds Jobs owned by a given CronJob, sorted by creation time (most recent first)
+- Resolves each Job to its Pod (via the `job-name` label) and fetches that Pod's logs
+- Supports `--count` to limit how many recent Job executions to fetch logs for
+- Returns logs for every matched Job, each section labeled with its Job and Pod name
+
+### Usage
+
+```bash
+python3 k8s-cronjob-logs --namespace redis-migration --cronjob riot-compare-cron --count 10
+```
+
+### Requirements
+
+- Python 3 standard library only (no external dependencies)
+- `kubectl` installed and configured with access to the target cluster/namespace
