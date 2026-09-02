@@ -10,6 +10,7 @@ class ToolConfig:
     EIP = "eip"
     ELASTICACHE = "elasticache"
     ELB = "elb"
+    INTERNET_GATEWAY = "internetgateway"
     LAMBDA = "lambda"
     NAT_GATEWAY = "natgateway"
     NETWORK_FIREWALL = "networkfirewall"
