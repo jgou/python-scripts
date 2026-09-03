@@ -14,6 +14,7 @@ class ToolConfig:
     LAMBDA = "lambda"
     NAT_GATEWAY = "natgateway"
     NETWORK_FIREWALL = "networkfirewall"
+    OUTBOUND_RESOLVER = "outboundresolver"
     RDS = "rds"
     ROUTE53 = "route53"
     S3 = "s3"

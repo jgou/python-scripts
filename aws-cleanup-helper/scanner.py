@@ -17,6 +17,7 @@ from networkfirewallscanner import NetworkFirewallScanner
 from cloudfrontscanner import CloudFrontScanner
 from lambdascanner import LambdaScanner
 from internetgatewayscanner import InternetGatewayScanner
+from outboundresolverscanner import OutboundResolverScanner
 
 class Scanner:
     def __init__(self, config: ToolConfig) -> None:
@@ -41,6 +42,7 @@ class Scanner:
         self.cloudfront_scanner: CloudFrontScanner = CloudFrontScanner(session=self.session, config=self.config)
         self.lambda_scanner: LambdaScanner = LambdaScanner(session=self.session, config=self.config)
         self.internet_gateway_scanner: InternetGatewayScanner = InternetGatewayScanner(session=self.session, config=self.config)
+        self.outbound_resolver_scanner: OutboundResolverScanner = OutboundResolverScanner(session=self.session, config=self.config)
 
     def __authenticate(self) -> None:
         try:
@@ -99,6 +101,9 @@ class Scanner:
         if ToolConfig.Services.INTERNET_GATEWAY.value in self.config.services:
             self.internet_gateway_scanner.scan()
             self.internet_gateway_scanner.verbose_scan()
+        if ToolConfig.Services.OUTBOUND_RESOLVER.value in self.config.services:
+            self.outbound_resolver_scanner.scan()
+            self.outbound_resolver_scanner.verbose_scan()
 
     def delete(self) -> None:
         if ToolConfig.Services.S3.value in self.config.services:
@@ -137,5 +142,7 @@ class Scanner:
             self.eip_scanner.delete()
         if ToolConfig.Services.INTERNET_GATEWAY.value in self.config.services:
             self.internet_gateway_scanner.delete()
+        if ToolConfig.Services.OUTBOUND_RESOLVER.value in self.config.services:
+            self.outbound_resolver_scanner.delete()
 
     
