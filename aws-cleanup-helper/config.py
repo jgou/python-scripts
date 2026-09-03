@@ -4,8 +4,11 @@ import enum
 class ToolConfig:
 
   class Services(enum.Enum):
+    AMI = "ami"
     CLIENT_VPN = "clientvpn"
     CLOUDFRONT = "cloudfront"
+    EBS_SNAPSHOT = "ebssnapshot"
+    EBS_VOLUME = "ebsvolume"
     EC2 = "ec2"
     EIP = "eip"
     ELASTICACHE = "elasticache"
