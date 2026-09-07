@@ -22,6 +22,9 @@ from outboundresolverscanner import OutboundResolverScanner
 from ebsvolumescanner import EbsVolumeScanner
 from ebssnapshotscanner import EbsSnapshotScanner
 from amiscanner import AmiScanner
+from cloudwatchlogsscanner import CloudWatchLogsScanner
+from cloudwatchalarmsscanner import CloudWatchAlarmsScanner
+from cloudwatchdashboardsscanner import CloudWatchDashboardsScanner
 
 class Scanner:
     def __init__(self, config: ToolConfig) -> None:
@@ -54,6 +57,9 @@ class Scanner:
         self.ebs_volume_scanner: EbsVolumeScanner = EbsVolumeScanner(session=self.session, config=self.config)
         self.ebs_snapshot_scanner: EbsSnapshotScanner = EbsSnapshotScanner(session=self.session, config=self.config)
         self.ami_scanner: AmiScanner = AmiScanner(session=self.session, config=self.config)
+        self.cloudwatch_logs_scanner: CloudWatchLogsScanner = CloudWatchLogsScanner(session=self.session, config=self.config)
+        self.cloudwatch_alarms_scanner: CloudWatchAlarmsScanner = CloudWatchAlarmsScanner(session=self.session, config=self.config)
+        self.cloudwatch_dashboards_scanner: CloudWatchDashboardsScanner = CloudWatchDashboardsScanner(session=self.session, config=self.config)
 
     def __authenticate(self) -> None:
         try:
@@ -124,6 +130,15 @@ class Scanner:
         if ToolConfig.Services.AMI.value in self.config.services:
             self.ami_scanner.scan()
             self.ami_scanner.verbose_scan()
+        if ToolConfig.Services.CLOUDWATCH_LOGS.value in self.config.services:
+            self.cloudwatch_logs_scanner.scan()
+            self.cloudwatch_logs_scanner.verbose_scan()
+        if ToolConfig.Services.CLOUDWATCH_ALARMS.value in self.config.services:
+            self.cloudwatch_alarms_scanner.scan()
+            self.cloudwatch_alarms_scanner.verbose_scan()
+        if ToolConfig.Services.CLOUDWATCH_DASHBOARDS.value in self.config.services:
+            self.cloudwatch_dashboards_scanner.scan()
+            self.cloudwatch_dashboards_scanner.verbose_scan()
 
     def delete(self) -> None:
         if ToolConfig.Services.S3.value in self.config.services:
@@ -174,5 +189,10 @@ class Scanner:
             self.internet_gateway_scanner.delete()
         if ToolConfig.Services.OUTBOUND_RESOLVER.value in self.config.services:
             self.outbound_resolver_scanner.delete()
+        if ToolConfig.Services.CLOUDWATCH_ALARMS.value in self.config.services:
+            self.cloudwatch_alarms_scanner.delete()
+        if ToolConfig.Services.CLOUDWATCH_DASHBOARDS.value in self.config.services:
+            self.cloudwatch_dashboards_scanner.delete()
+        if ToolConfig.Services.CLOUDWATCH_LOGS.value in self.config.services:
+            self.cloudwatch_logs_scanner.delete()
 
-    

@@ -7,6 +7,9 @@ class ToolConfig:
     AMI = "ami"
     CLIENT_VPN = "clientvpn"
     CLOUDFRONT = "cloudfront"
+    CLOUDWATCH_ALARMS = "cloudwatchalarms"
+    CLOUDWATCH_DASHBOARDS = "cloudwatchdashboards"
+    CLOUDWATCH_LOGS = "cloudwatchlogs"
     EBS_SNAPSHOT = "ebssnapshot"
     EBS_VOLUME = "ebsvolume"
     EC2 = "ec2"
@@ -32,12 +35,14 @@ class ToolConfig:
     services: list[str] | None = None,
     dry_run: bool = False,
     skip_final_snapshot: bool = False,
+    skip_s3_buckets: list[str] | None = None,
   ) -> None:
     self.profile: str | None = profile
     self.regions: list[str] = regions if regions is not None else []
     self.services: list[str] = services if services else [service.value for service in self.Services]
     self.dry_run: bool = dry_run
     self.skip_final_snapshot: bool = skip_final_snapshot
+    self.skip_s3_buckets: list[str] = skip_s3_buckets if skip_s3_buckets is not None else []
 
   @staticmethod
   def validate_services(values: list[str]) -> bool:
