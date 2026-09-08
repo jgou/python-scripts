@@ -10,6 +10,7 @@ class ToolConfig:
     CLOUDWATCH_ALARMS = "cloudwatchalarms"
     CLOUDWATCH_DASHBOARDS = "cloudwatchdashboards"
     CLOUDWATCH_LOGS = "cloudwatchlogs"
+    CLOUDTRAIL = "cloudtrail"
     EBS_SNAPSHOT = "ebssnapshot"
     EBS_VOLUME = "ebsvolume"
     EC2 = "ec2"

@@ -33,8 +33,11 @@ class S3Scanner:
         has_objects = False
         try:
             s3 = self.session.client("s3")
-            response = s3.list_objects_v2(Bucket=bucket_name, MaxKeys=1)
-            has_objects = response.get("KeyCount", 0) > 0
+            # list_objects_v2 alone would miss a bucket that holds only noncurrent
+            # versions or delete markers (e.g. a versioned bucket someone already tried
+            # to empty), reporting it as empty when there's still content to clean up.
+            response = s3.list_object_versions(Bucket=bucket_name, MaxKeys=1)
+            has_objects = bool(response.get("Versions") or response.get("DeleteMarkers"))
         except ClientError as e:
             print(f"Could not check objects for bucket {bucket_name}: {e}")
             has_objects = False
@@ -82,10 +85,10 @@ class S3Scanner:
     def __delete_batch(self, s3, bucket_name: str, delete_keys: list[dict[str, str]], page_number: int) -> int:
         try:
             s3.delete_objects(Bucket=bucket_name, Delete={"Objects": delete_keys})
-            print(f"Deleted {len(delete_keys)} object(s) from bucket {bucket_name} (page {page_number})")
+            print(f"Deleted {len(delete_keys)} version(s) from bucket {bucket_name} (page {page_number})")
             return len(delete_keys)
         except ClientError as e:
-            print(f"Could not delete a batch of {len(delete_keys)} object(s) from bucket {bucket_name} (page {page_number}): {e}")
+            print(f"Could not delete a batch of {len(delete_keys)} version(s) from bucket {bucket_name} (page {page_number}): {e}")
             return 0
 
     def __delete_objects(self, bucket_name: str) -> None:
@@ -93,26 +96,33 @@ class S3Scanner:
             # A boto3 client's methods are safe to call concurrently from multiple threads,
             # so one client can be shared across the whole thread pool below.
             s3 = self.session.client("s3")
-            print(f"Deleting objects in bucket {bucket_name}...")
-            paginator = s3.get_paginator("list_objects_v2")
+            print(f"Deleting all object versions in bucket {bucket_name}...")
+            # list_objects_v2 only sees the current version of each key: deleting a key
+            # through it just adds a delete marker on top rather than removing anything,
+            # so noncurrent versions (and the marker itself) are left behind, and
+            # DeleteBucket then fails with BucketNotEmpty. list_object_versions surfaces
+            # every version plus every delete marker, and deleting each by its VersionId
+            # actually removes it. This also works correctly for buckets that were never
+            # versioned (VersionId is just "null" for those).
+            paginator = s3.get_paginator("list_object_versions")
             total_deleted = 0
             with ThreadPoolExecutor(max_workers=MAX_CONCURRENT_DELETES) as executor:
                 futures = []
                 for page_number, page in enumerate(paginator.paginate(Bucket=bucket_name), start=1):
-                    objects = page.get("Contents", [])
-                    if not objects:
+                    versions = page.get("Versions", []) + page.get("DeleteMarkers", [])
+                    if not versions:
                         continue
-                    delete_keys = [{"Key": obj["Key"]} for obj in objects]
+                    delete_keys = [{"Key": v["Key"], "VersionId": v["VersionId"]} for v in versions]
                     if self.config.dry_run:
-                        print(f"Dry run: would delete {len(delete_keys)} object(s) from bucket {bucket_name} (page {page_number})")
+                        print(f"Dry run: would delete {len(delete_keys)} version(s) from bucket {bucket_name} (page {page_number})")
                         continue
                     futures.append(executor.submit(self.__delete_batch, s3, bucket_name, delete_keys, page_number))
                 for future in as_completed(futures):
                     total_deleted += future.result()
             if not self.config.dry_run:
-                print(f"Finished deleting objects in bucket {bucket_name}: {total_deleted} object(s) removed.")
+                print(f"Finished deleting object versions in bucket {bucket_name}: {total_deleted} version(s) removed.")
         except ClientError as e:
-            print(f"Could not delete objects in bucket {bucket_name}: {e}")
+            print(f"Could not delete object versions in bucket {bucket_name}: {e}")
 
     def delete(self) -> None:
         total_buckets = len(self.buckets_info)
@@ -122,6 +132,8 @@ class S3Scanner:
                 print(f"Skipping bucket {bucket_name} ({index}/{total_buckets}): excluded via --skip-s3-bucket")
                 continue
             print(f"Processing bucket {bucket_name} ({index}/{total_buckets})...")
-            if bucket_info["HasObjects"]:
-                self.__delete_objects(bucket_name)
+            # Always attempt this: HasObjects only reflects current-version objects, so a
+            # bucket holding just noncurrent versions or delete markers would report False
+            # and get skipped here, then fail on delete_bucket with BucketNotEmpty anyway.
+            self.__delete_objects(bucket_name)
             self.__delete_bucket(bucket_name)

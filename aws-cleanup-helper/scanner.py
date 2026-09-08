@@ -25,6 +25,7 @@ from amiscanner import AmiScanner
 from cloudwatchlogsscanner import CloudWatchLogsScanner
 from cloudwatchalarmsscanner import CloudWatchAlarmsScanner
 from cloudwatchdashboardsscanner import CloudWatchDashboardsScanner
+from cloudtrailscanner import CloudTrailScanner
 
 class Scanner:
     def __init__(self, config: ToolConfig) -> None:
@@ -60,6 +61,7 @@ class Scanner:
         self.cloudwatch_logs_scanner: CloudWatchLogsScanner = CloudWatchLogsScanner(session=self.session, config=self.config)
         self.cloudwatch_alarms_scanner: CloudWatchAlarmsScanner = CloudWatchAlarmsScanner(session=self.session, config=self.config)
         self.cloudwatch_dashboards_scanner: CloudWatchDashboardsScanner = CloudWatchDashboardsScanner(session=self.session, config=self.config)
+        self.cloudtrail_scanner: CloudTrailScanner = CloudTrailScanner(session=self.session, config=self.config)
 
     def __authenticate(self) -> None:
         try:
@@ -70,6 +72,9 @@ class Scanner:
             print(f"Authentication failed: {e}")
 
     def scan(self) -> None:
+        if ToolConfig.Services.CLOUDTRAIL.value in self.config.services:
+            self.cloudtrail_scanner.scan()
+            self.cloudtrail_scanner.verbose_scan()
         if ToolConfig.Services.S3.value in self.config.services:
             self.s3_scanner.scan()
             self.s3_scanner.verbose_scan()
@@ -141,6 +146,11 @@ class Scanner:
             self.cloudwatch_dashboards_scanner.verbose_scan()
 
     def delete(self) -> None:
+        # Stopped first: if S3 data events are enabled account-wide, every list/delete
+        # call the rest of this method makes gets logged (and billed) as a CloudTrail
+        # data event, including calls against the trail's own log-destination bucket.
+        if ToolConfig.Services.CLOUDTRAIL.value in self.config.services:
+            self.cloudtrail_scanner.delete()
         if ToolConfig.Services.S3.value in self.config.services:
             self.s3_scanner.delete()
         if ToolConfig.Services.EC2.value in self.config.services:
